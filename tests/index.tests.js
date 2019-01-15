@@ -140,7 +140,7 @@ describe('bundle the module classes properly', _ => {
                 classPath: 'tests\\TestClass.js'
             })
             .then(_ => {
-                execSync('browserify tests/TestClassBundle.js -o tests/bundle.js');
+                execSync('browserify tests/TestClass.bundle.js -o tests/bundle.js');
                 fs.writeFileSync('./tests/test.html', `<script src="bundle.js"></script>`);
             })
             .then(async _ => {

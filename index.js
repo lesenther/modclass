@@ -92,17 +92,26 @@ module.exports = function(
      */
     function createBundle(config) {
         config = extend({
-            filename: __dirname + '\\modclass.bundle.js',
+            filename: 'modclass.bundle.js',
             overwrite: false,
             dependencies: [],
             excludeProps: [],
             cloneClass: false,
-            classPath: module.parent.filename
+            classPath: module.parent.filename,
+            outputDir: path.dirname(module.parent.filename)
         }, config);
 
         return new Promise((resolve, reject) => {
-            if (fs.existsSync(config.filename) && !config.overwrite) {
-                return reject(new Error(`File exists: ${config.filename}`));
+            const classFilename = path.basename(config.classPath).split('.')[0];
+            const outputPathBundle = path.join(config.outputDir, config.filename);
+            const outputPathClass = path.join(config.outputDir, `${classFilename}.bundle.js`);
+
+            if (fs.existsSync(outputPathBundle) && !config.overwrite) {
+                return reject(new Error(`File exists: ${outputPathBundle}`));
+            }
+
+            if (fs.existsSync(outputPathClass) && !config.overwrite) {
+                return reject(new Error(`File exists: ${outputPathClass}`));
             }
 
             const output = [
@@ -124,19 +133,20 @@ module.exports = function(
 
             output.push('\t};\n\tfor (let prop in _modclass) { _this[prop] = _modclass[prop]; }\n};');
 
-            fs.writeFileSync(`${path.dirname(config.classPath)}\\${config.filename}`, `${output.join("\n")}`);
+            fs.writeFileSync(outputPathBundle, output.join("\n"));
 
             if (!config.cloneClass) {
                 return resolve();
             }
 
             const masterName = __dirname.split(path.sep).pop(); // used for dereferencing
-            const cloneClass = fs.readFileSync(config.classPath).toString().split('\n');
-            const clonePath = `${path.dirname(config.classPath)}\\${path.basename(config.classPath).split('.')[0]}Bundle.js`;
+            const cloneClass = fs.readFileSync(config.classPath)
+            .toString().split('\n');
 
             let classFound = false;
             let className = false;
             let addedDeref = false;
+            let addedExport = false;
 
             cloneClass.forEach((line, index) => {
                 // Deference modclass and replace with the new bundle
@@ -151,15 +161,21 @@ module.exports = function(
 
                 if (classFound && inVal('module.exports', line)) {
                     cloneClass[index] = `global.${className[1]} = ${className[1]};`;
+                    addedExport = true;
                 }
             });
 
             if (!addedDeref) {
                 cloneClass.splice(1, 0, `const modclass = require('./${config.filename}');`);
-                console.log(` - Warning:  Could not dereference properly, check the class require for the modclass bundle.`)
+                console.log(` - Warning:  Could not dereference properly, check the requires for the modclass bundle.`)
             }
 
-            fs.writeFileSync(clonePath, cloneClass.join('\n'));
+            if (!addedExport) {
+                cloneClass.push(`global.${className || classFilename} = ${className || classFilename};`);
+                console.log(`Warning:  Could not add export properly, check the global reference at the bottom of the class.`);
+            }
+
+            fs.writeFileSync(outputPathClass, cloneClass.join('\n'));
 
             return resolve();
         });

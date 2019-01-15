@@ -31,11 +31,11 @@ function createTestModule(moduleName, moduleFunc) {
 function destroyTestModules() {
     return fs.remove(`${__dirname}\\modules`)
     .then(_ => {
-        fs.remove(`${__dirname}\\modClass.bundle.js`);
         fs.remove(`${__dirname}\\TestClass.js`);
-        fs.remove(`${__dirname}\\TestClassBundle.js`);
-        fs.remove(`${__dirname}\\test.html`);
+        fs.remove(`${__dirname}\\TestClass.bundle.js`);
+        fs.remove(`${__dirname}\\modClass.bundle.js`);
         fs.remove(`${__dirname}\\bundle.js`);
+        fs.remove(`${__dirname}\\test.html`);
     });
 }
 
